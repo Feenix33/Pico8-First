@@ -4,6 +4,11 @@ __lua__
 
 beans = {}
 gdebug=30*50
+gdir_d=0
+gdir_l=1
+gdir_u=2
+gdir_r=3
+gpipe=6
 
 function make_bean(mx, my, dir, clr)
   local m
@@ -19,7 +24,7 @@ function make_bean(mx, my, dir, clr)
     b.y = my*8+1
   elseif m==77 then
     b.x = (mx+1)*8-1
-    b.y = my*8+4
+    b.y = my*8+3
   elseif m==78 then
     b.x = mx*8+4
     b.y = my*8+7
@@ -53,57 +58,80 @@ end
 
 function debug_bean(b)
   printh("x,y,d = "..b.x..", "..b.y..", "..b.dir)
-  printh("map x,y = "..b.mx..", "..b.my .. mget(b.mx,b.my))
+  printh("map x,y = "..b.mx..", "..b.my.."=".. mget(b.mx,b.my))
 end
 
 function turn_right(b)
-  if b.dir == 2 then b.dir = 4
-  elseif b.dir == 4 then b.dir = 8
-  elseif b.dir == 8 then b.dir = 6
-  elseif b.dir == 6 then b.dir = 2
-  else b.dir = 2
-  end
+  b.dir = (b.dir+1) % 4
 end
 
 function turn_left(b)
-  if b.dir == 2 then b.dir = 6
-  elseif b.dir == 4 then b.dir = 2
-  elseif b.dir == 8 then b.dir = 4
-  elseif b.dir == 6 then b.dir = 8
-  else b.dir = 2
+  b.dir = (b.dir+3) % 4
+end
+
+function can_right(b)
+  -- d l u r
+  local xoff, yoff
+  xoff = {[0]=-1,0,1,0}
+  yoff = {[0]=0,-1,0,1}
+  if pget(b.x+xoff[b.dir], b.y+yoff[b.dir]) == gpipe then
+    return true
   end
+  return false
 end
 
 function update_bean(b)
   local x, y
-  x = 0
-  y = 0
+  local xoff, yoff
+  -- d l u r
+  xoff = {[0]=0,-1,0,1} -- zero index start
+  yoff = {[0]=1,0,-1,0}
   b.count+=1
-  --if b.count%gdebug then debug_bean(b) end
-  if b.dir == 6 then x = 1 
-  elseif b.dir == 4 then x = -1 
-  elseif b.dir == 8 then y = -1
-  elseif b.dir == 2 then y = 1
-  end
-  if pget(b.x+x, b.y+y) == 6 then
+  x = xoff[b.dir]
+  y = yoff[b.dir]
+  if pget(b.x+x, b.y+y) == gpipe then
     b.x += x
     b.y += y
+    if can_right(b) then
+      turn_right(b)
+    end
   else
     turn_left(b)
+    --turn_right(b)
   end
 end
 
 function _init()
-  make_bean(3,4,6,10)
-  make_bean(9,3,6,11)
-  foreach(beans, debug_bean)
+  printh("Run ------------- "..time())
+  --make_bean( 3, 4,gdir_r, 8)
+  --make_bean( 9, 3,gdir_r,12)
+  --make_bean( 3, 0,gdir_r, 7)
+  --make_bean(11, 3,gdir_r, 9)
+  --foreach(beans, debug_bean)
+  local cnt,mx,my,mt
+  cnt=0
+  mx=0
+  my=0
+  while cnt<100 do
+    mt=mget(mx,my)
+    if mt >= 75 and mt <= 78 then
+      make_bean(mx,my,gdir_r,(cnt%9)+7)
+      cnt += 1
+    end
+    mx+=1
+    if mx >= 16 then
+      mx=0
+      my+=1
+    end
+    if my > 12 then cnt = 1000 end
+  end
   cls()
   srand(time())
 end
 
 function _draw()
   cls(0)
-  map(0, 0, 0, 0, 12, 16)
+  map(0, 0, 0, 0, 15, 10)
   foreach(beans, draw_bean)
 end
 
