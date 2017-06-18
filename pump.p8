@@ -3,15 +3,92 @@ version 10
 __lua__
 
 beans = {}
+gens = {}
+eats = {}
 gdebug=30*50
 gdir_d=0
 gdir_l=1
 gdir_u=2
 gdir_r=3
 gpipe=6
+--   u     2
+-- l + r  1+3
+--   d     0
 
-function make_bean(mx, my, dir, clr)
-  local m
+function collisions()
+  foreach(beans, function(b)
+    foreach(eats, function(e)
+      if b.x >= e.mx*8 and b.x <= e.mx*8+7 and b.y >= e.my*8 and b.y <= e.my*8+7 then
+        if not e.mch or (e.mch and (e.clr == b.clr)) then
+          b.alive=false
+        end
+      end
+    end)
+  end)
+end
+
+function clean_beans()
+  for b in all(beans) do
+    if not b.alive then
+      del(beans,b)
+    end
+  end
+end
+
+function make_eat(mx, my, clr, mch)
+  local e
+  e={}
+  e.mx=mx
+  e.my=my
+  e.x=mx*8+2
+  e.y=my*8+2
+  e.clr=clr
+  e.mch=mch
+  add(eats,e)
+end
+
+
+function draw_eat(e)
+  rect(e.x,e.y,e.x+3,e.y+3,e.clr)
+  if e.mch then
+    line(e.x,e.y,e.x+3,e.y+3,e.clr)
+  end
+end
+
+function update_eat(e)
+end
+
+function make_gen(mx, my, clr, rate, btype)
+  local g
+  g={}
+  g.mx=mx
+  g.my=my
+  g.x=mx*8+3
+  g.y=my*8+3
+  g.clr=clr
+  g.rate=rate
+  g.tick=rate-1
+  g.alive=true
+  g.bt=btype
+  add(gens,g)
+end
+
+function draw_gen(g)
+  rectfill(g.x,g.y,g.x+1,g.y+1,g.clr)
+  --pset(g.x,g.y,g.clr)
+end
+
+function update_gen(g)
+  g.tick+=1
+  if g.tick >= g.rate then
+    g.tick = 0
+    make_bean(g.mx,g.my,gdir_r,g.clr,g.bt)
+    --printh("making bean "..g.mx..", "..g.my)
+  end
+end
+
+function make_bean(mx, my, dir, clr, btype)
+  local b
   b={}
   m=mget(mx, my)
   b.x=1
@@ -37,6 +114,39 @@ function make_bean(mx, my, dir, clr)
   b.count=0
   b.mx=mx
   b.my=my
+  b.alive=true
+  b.bt=btype
+  add(beans,b)
+end
+
+function oldmake_bean(mx, my, dir, clr)
+  local b
+  b={}
+  m=mget(mx, my)
+  b.x=1
+  b.y=2
+  if m == 75 then 
+    b.x = mx*8+1
+    b.y = my*8+4
+  elseif m==76 then
+    b.x = mx*8+4
+    b.y = my*8+1
+  elseif m==77 then
+    b.x = (mx+1)*8-1
+    b.y = my*8+4
+  elseif m==78 then
+    b.x = mx*8+4
+    b.y = my*8+7
+  else
+    printh("Bad start")
+    printh("map(mx,my)=map("..mx..", "..my..")="..mget(mx,my))
+  end
+  b.dir = dir
+  b.clr=clr
+  b.count=0
+  b.mx=mx
+  b.my=my
+  b.alive=true
   add(beans,b)
 end
 
@@ -69,11 +179,21 @@ function turn_left(b)
   b.dir = (b.dir+3) % 4
 end
 
+-- can right and left get from screen not from map, change?
 function can_right(b)
-  -- d l u r
   local xoff, yoff
   xoff = {[0]=-1,0,1,0}
   yoff = {[0]=0,-1,0,1}
+  if pget(b.x+xoff[b.dir], b.y+yoff[b.dir]) == gpipe then
+    return true
+  end
+  return false
+end
+
+function can_left(b)
+  local xoff, yoff
+  xoff = {[0]= 1,0,-1,0}
+  yoff = {[0]=0, 1,0,-1}
   if pget(b.x+xoff[b.dir], b.y+yoff[b.dir]) == gpipe then
     return true
   end
@@ -84,6 +204,40 @@ function update_bean(b)
   local x, y
   local xoff, yoff
   -- d l u r
+  if b.alive == false then return end
+  xoff = {[0]=0,-1,0,1} -- zero index start
+  yoff = {[0]=1,0,-1,0}
+  b.count+=1
+  x = xoff[b.dir]
+  y = yoff[b.dir]
+  if b.bt == 0 then
+    if pget(b.x+x, b.y+y) == gpipe then
+      b.x += x
+      b.y += y
+      if can_left(b) then
+        turn_left(b)
+      end
+    else
+      turn_right(b)
+    end
+  else
+    if pget(b.x+x, b.y+y) == gpipe then
+      b.x += x
+      b.y += y
+      if can_right(b) then
+        turn_right(b)
+      end
+    else
+      turn_left(b)
+    end
+  end
+end
+
+function oldupdate_bean(b)
+  local x, y
+  local xoff, yoff
+  -- d l u r
+  if b.alive == false then return end
   xoff = {[0]=0,-1,0,1} -- zero index start
   yoff = {[0]=1,0,-1,0}
   b.count+=1
@@ -103,28 +257,15 @@ end
 
 function _init()
   printh("Run ------------- "..time())
-  --make_bean( 3, 4,gdir_r, 8)
-  --make_bean( 9, 3,gdir_r,12)
-  --make_bean( 3, 0,gdir_r, 7)
-  --make_bean(11, 3,gdir_r, 9)
-  --foreach(beans, debug_bean)
-  local cnt,mx,my,mt
-  cnt=0
-  mx=0
-  my=0
-  while cnt<100 do
-    mt=mget(mx,my)
-    if mt >= 75 and mt <= 78 then
-      make_bean(mx,my,gdir_r,(cnt%9)+7)
-      cnt += 1
-    end
-    mx+=1
-    if mx >= 16 then
-      mx=0
-      my+=1
-    end
-    if my > 12 then cnt = 1000 end
-  end
+
+  --make_eat(8, 5, 2, false)
+  -- for testing the gen inits
+  make_gen(7, 1,  3, 30, 0) -- emit right
+  make_gen(5, 1,  3, 30, 1) -- emit left
+  make_gen(1, 3,  3, 30, 1) -- emit down
+  make_gen(1, 6, 10, 30, 0) -- emit down
+  make_gen(3, 7,  3, 20, 0) -- emit up
+  make_gen(3, 4, 12, 30, 1) -- emit up
   cls()
   srand(time())
 end
@@ -133,10 +274,16 @@ function _draw()
   cls(0)
   map(0, 0, 0, 0, 15, 10)
   foreach(beans, draw_bean)
+  foreach(gens, draw_gen)
+  foreach(eats, draw_eat)
 end
 
 function _update()
   foreach(beans, update_bean)
+  foreach(gens, update_gen)
+  foreach(eats, update_eat)
+  collisions()
+  clean_beans()
 end
 
 __gfx__
