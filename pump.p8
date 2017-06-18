@@ -1,4 +1,17 @@
 pico-8 cartridge // http://www.pico-8.com
+--[[
+Simple particle pump simulation
+beans are the particles
+gens are bean generators
+eats remove beans from the system
+pipes are the pathways for the beans and connect gens and beans
+tiles are pipes and empty gens and eats
+gens emit particles at a constant, initialized rate
+eats eliminate any bean or only matching color beans
+gens create clockwise and ccw beans
+beans look at the screen to determine if they can move, not the map
+map is copied to the screen, but the open boxes can be gens or eats
+]]--
 version 10
 __lua__
 
