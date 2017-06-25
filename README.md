@@ -2,5 +2,5 @@
 
 * pump
 
-.. Simulate particles traveling through pipes
+..* Simulate particles traveling through pipes
 
