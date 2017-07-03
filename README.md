@@ -1,6 +1,8 @@
 # Pico8 Programs
 
-* pump
 
-..* Simulate particles traveling through pipes
+**Program** | **Experiment**
+--- | ---
+pump | Simulate particles/beans traveling through pipes
+sbeans | Beans with states
 
