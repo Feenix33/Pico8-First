@@ -9,5 +9,6 @@ bldgs | Draws a random building
 camera | Experiment in moving a tile map using map() and camera() functions
 text |  Text window using the camera() command to make placement easier
 dither | Try the new dither function in latest pico8
-simplemap | move a map around with a select box
-robots | attempt at recreate the BSD robots game
+simplemap | Move a map around with a select box
+robots | Attempt at recreate the BSD robots game
+arck | Simple arcade game: fly across landscape shooting enemies
